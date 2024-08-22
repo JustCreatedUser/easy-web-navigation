@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="author" content="Daniel Diril" />
+    <meta
+      name="description"
+      content="Are you tired from having multitude important websites and being unable to easily navigate between them? Then this application is your choice! Create your custom links, separate them by groups and use them whenever you want!"
+    />
+    <meta name="og:title" property="og:title" content="Easy WEB navigation" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Easy WEB navigation</title>
+    <link rel="stylesheet" href="./styles/main.css" />
+    <link rel="icon" href="./images/favicon.ico.webp" />
+    <script defer src="./scripts/main.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>Easy WEB navigation</h1>
+      <nav>
+        <div class="find-reference_input">
+          <input
+            list="find-reference_options"
+            type="search"
+            placeholder="Quick Search"
+          />
+          <img
+            alt="search icon"
+            src="./images/search-icon.png"
+            id="search-button"
+          />
+        </div>
+        <datalist id="find-reference_options">
+          <option value="first"></option>
+          <option value="second"></option>
+        </datalist>
+      </nav>
+    </header>
+    <div class="group-aside-button">
+      <label>
+        <input type="checkbox" id="toggle-group-aside" />
+        <div></div>
+        <div></div>
+        <div></div>
+      </label>
+    </div>
+    <aside>
+      <label id="addNewLinkButton" for="createLinkState"> Add new link </label>
+      <fieldset>
+        <legend>Group filter <button>+</button></legend>
+        <label
+          ><input checked type="radio" name="group" data-group="All" />
+          <span>All</span></label
+        >
+        <label
+          ><input type="radio" name="group" data-group="Ungrouped" /><span
+            >Ungrouped</span
+          >
+        </label>
+        <!-- <label
+          ><input type="radio" name="group" data-group="Work" /><span
+            >Work</span
+          >
+          <button>-</button></label
+        > -->
+      </fieldset>
+    </aside>
+    <main></main>
+    <input type="radio" name="link-settings" id="createLinkState" />
+    <section>
+      <div class="configure-link">
+        <input id="linkName" type="text" placeholder="Name" />
+        <textarea id="linkURL" placeholder="URL"></textarea>
+        <input type="search" list="linkGroupSelect" id="linkGroupInput" />
+        <datalist id="linkGroupSelect">
+          <option value="Ungrouped">Ungrouped</option>
+        </datalist>
+        <button id="special-button-for-link"></button>
+      </div>
+    </section>
+  </body>
+</html>

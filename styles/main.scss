@@ -1,0 +1,291 @@
+@charset "UTF-8";
+@use "sass:math";
+
+$GREEN: #99cea5;
+$GREY: #5e5e5e;
+// $my-height: 1080;
+// $my-width: 1920;
+// @function setSizeWithMath($actualSize, $container: $my-width, $value: "vw") {
+//   $size: 100vw;
+//   @if $value == "vh" {
+//     $size: 100vh;
+//   }
+//   @if $value == "%" {
+//     $size: 100%;
+//   }
+//   @return math.div($actualSize, $container) * $size;
+// }
+@function setControllableSize($size, $var: var(--scale-08-below-650px)) {
+  @return calc($size * $var);
+}
+:root {
+  --scale-08-below-650px: 1;
+  --scale-03-below-650px: 1;
+}
+@media (max-width: 650px) {
+  :root {
+    --scale-08-below-650px: 0.8;
+    --scale-03-below-650px: 0.3;
+  }
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  overflow-x: hidden;
+  padding-top: setControllableSize(100px, var(--scale-08-below-650px));
+}
+header {
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  background-color: $GREEN;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-block: setControllableSize(20px, var(--scale-03-below-650px));
+  padding-left: setControllableSize(70px, var(--scale-03-below-650px));
+  padding-right: setControllableSize(70px, var(--scale-08-below-650px));
+}
+h1 {
+  color: $GREY;
+  font-size: setControllableSize(30px);
+}
+nav {
+  display: flex;
+  gap: 20px;
+}
+input {
+  &:focus {
+    outline: none;
+  }
+  aside &[type="radio"]:checked::after {
+    content: "";
+    display: block;
+    background: $GREY;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: double white 2px;
+  }
+  main &,
+  body > &,
+  &[type="checkbox"] {
+    display: none;
+  }
+  border: none;
+  -webkit-text-fill-color: black;
+  background-color: transparent;
+}
+main {
+  gap: setControllableSize(30px);
+  display: flex;
+  justify-content: space-evenly;
+  min-height: 40vh;
+  align-items: center;
+  flex-wrap: wrap;
+  &:has(input[name]:checked) ~ section {
+    display: flex;
+  }
+}
+input[name="link-settings"]:checked + section {
+  display: flex;
+}
+section {
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.535);
+  display: none;
+  z-index: 2;
+  inset: 0;
+  position: absolute;
+  justify-content: center;
+  align-items: center;
+}
+.configure-link {
+  display: grid;
+  grid-template-rows: 1fr 1fr 2fr 1fr;
+  width: clamp(300px, 50vw, 800px);
+  height: clamp(300px, 50vh, 700px);
+  cursor: initial;
+  & > * {
+    border-radius: 10px;
+    font-weight: 900;
+    background-color: white;
+    border: 1px solid black;
+    padding-inline: 5%;
+    padding-block: 5px;
+  }
+}
+.group-aside-button {
+  position: fixed;
+  top: setControllableSize(20px, var(--scale-03-below-650px));
+  right: 10px;
+  z-index: 1;
+  label {
+    transition: scale 500ms;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    gap: 5px;
+  }
+  div {
+    transform-origin: left center;
+    transition: width 500ms, rotate 500ms;
+    width: setControllableSize(40px);
+    border: 1px solid black;
+    height: setControllableSize(8px);
+    background-color: white;
+  }
+}
+.find-reference_input {
+  img {
+    height: 20px;
+    width: 17px;
+    cursor: pointer;
+    transition: scale 200ms;
+    &:hover {
+      scale: 1.1;
+    }
+  }
+  width: clamp(setControllableSize(180px), 18vw, setControllableSize(250px));
+  display: flex;
+  align-items: center;
+  border: 1px solid black;
+  border-radius: 10px;
+  button {
+    flex: 1;
+  }
+  input {
+    padding: 10px;
+    width: clamp(setControllableSize(140px), 83%, setControllableSize(220px));
+    font-size: setControllableSize(14px);
+  }
+}
+label:has(#toggle-group-aside:checked) {
+  scale: 1.3;
+}
+#toggle-group-aside:checked {
+  z-index: 1;
+  ~ div {
+    border: none;
+    width: 40px * 0.8;
+    height: 8px * 0.8;
+    &:nth-of-type(1) {
+      rotate: 45deg;
+    }
+    &:nth-of-type(2) {
+      width: 0;
+    }
+    &:nth-of-type(3) {
+      rotate: -45deg;
+    }
+  }
+}
+aside {
+  overflow-y: scroll;
+  font-size: 1.6em;
+  transition: 500ms translate;
+  translate: 100% 0;
+  top: 0;
+  right: 0;
+  position: fixed;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 70px 30px;
+  color: white;
+}
+#addNewLinkButton {
+  transition: background-color 250ms, scale 100ms;
+  color: white;
+  cursor: pointer;
+  background: #99cea59c;
+  padding: 8px 10px;
+  border-radius: 15px;
+  font-size: 20px;
+  border: 2px solid white;
+  &:hover {
+    background: $GREY;
+  }
+}
+fieldset {
+  margin-top: 20px;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  label {
+    display: flex;
+    align-items: center;
+    word-break: break-all;
+  }
+  input {
+    -webkit-text-fill-color: white;
+  }
+}
+.group-aside-button:has(#toggle-group-aside:checked) + aside {
+  translate: 0% 0;
+}
+::-webkit-scrollbar {
+  width: 12px;
+  background-color: $GREEN;
+  &-thumb {
+    background-color: $GREY;
+  }
+}
+fieldset button {
+  font-size: 30px;
+  line-height: 0px;
+  margin-left: 5px;
+  width: 26px;
+  height: 26px;
+  align-self: center;
+  border-radius: 50%;
+  background: $GREY;
+  color: white;
+  border: 2px solid white;
+  cursor: pointer;
+  transition: 200ms scale;
+  &:hover {
+    scale: 1.1;
+  }
+}
+::placeholder {
+  -webkit-text-fill-color: $GREY;
+}
+textarea {
+  resize: none;
+  outline: none;
+}
+a {
+  display: flex;
+  padding: setControllableSize(20px);
+  border-radius: setControllableSize(10px);
+  font-size: 30px;
+  color: white;
+  background-color: $GREY;
+}
+#special-button-for-link {
+  cursor: pointer;
+  background-color: black;
+  color: white;
+  font-size: 13px;
+  transition: 200ms font-size;
+  &:hover {
+    font-size: 15px;
+  }
+  &::after {
+    content: "Delete";
+  }
+}
+#createLinkState:checked + section #special-button-for-link {
+  background-color: $GREEN;
+  color: black;
+  &::after {
+    content: "Add";
+  }
+}
