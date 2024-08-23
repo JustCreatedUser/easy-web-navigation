@@ -54,7 +54,8 @@ const db: Database = (function () {
   ) as HTMLDataListElement,
   linkURL = document.getElementById("linkURL") as HTMLTextAreaElement,
   linkName = document.getElementById("linkName") as HTMLInputElement;
-
+var editableLinkInfo: Link | null = null,
+  checkedLinkRadio: HTMLInputElement | null = null;
 interface Link {
   name: string;
   url: string;
@@ -114,21 +115,15 @@ function prepareLinkGroupSelect() {
 
 function showLinksToUser(group: string, elementToShow: "group" | Database) {
   //! показує відфільтровані за групою АБО фільтром результати в html
-  switch (elementToShow) {
-    case "group":
-      var filteredArray = getFilteredResults(group);
-      break;
-
-    default:
-      var filteredArray = elementToShow;
-      break;
-  }
+  editableLinkInfo = null;
+  var filteredArray =
+    elementToShow === "group" ? getFilteredResults(group) : elementToShow;
   main.innerHTML = filteredArray.reduce(function (): string {
     return (
       arguments[0] +
-      /*html*/ `<div><input type="radio" name="link-settings"><a data-group="${arguments[1].group}" target="_blank" href="${arguments[1].url}">${arguments[1].name}</a></div>`
+      /*html*/ `<div><input id="radio${arguments[2]}" type="radio" name="link-settings"><a data-group="${arguments[1].group}" target="_blank" href="${arguments[1].url}">${arguments[1].name}</a><label for="radio${arguments[2]}">⋮</label></div>`
     );
-  }, "" satisfies string);
+  }, "");
 }
 
 function getFilteredResults(group: string) {
@@ -160,7 +155,9 @@ function configureGroupNameInput(
           groupInput.parentElement?.remove();
           return;
         }
-        if (allMutableGroups.includes(groupInput.value)) {
+        if (
+          [...allMutableGroups, "Ungrouped", "All"].includes(groupInput.value)
+        ) {
           alert("This groups already exists");
           groupInput.parentElement?.remove();
           return;
@@ -179,7 +176,6 @@ function configureGroupNameInput(
           "allMutableGroups",
           JSON.stringify(allMutableGroups)
         );
-
         prepareLinkGroupSelect();
         groupInput.remove();
       });
@@ -192,7 +188,7 @@ function configureGroupNameInput(
       groupInput.addEventListener("blur", function (): void {
         if (
           groupInput.value == "" ||
-          allMutableGroups.includes(groupInput.value)
+          [...allMutableGroups, "Ungrouped", "All"].includes(groupInput.value)
         ) {
           alert("Field is empty or name already exists. Unsuitable name");
           (span as HTMLSpanElement).removeAttribute("style");
@@ -212,13 +208,13 @@ function configureGroupNameInput(
           JSON.stringify(allMutableGroups)
         );
         localStorage.setItem("db", JSON.stringify(db));
-        (
-          main.querySelectorAll(
+        main
+          .querySelectorAll<HTMLAnchorElement>(
             `a[data-group="${span!.innerText}"]`
-          ) as NodeListOf<HTMLAnchorElement>
-        ).forEach((anchor) => {
-          anchor.dataset.group = groupInput.value;
-        });
+          )
+          .forEach((anchor) => {
+            anchor.dataset.group = groupInput.value;
+          });
         span!.innerText = groupInput.value;
         span!.removeAttribute("style");
         (span!.parentElement?.firstChild as HTMLInputElement).dataset.group =
@@ -231,6 +227,20 @@ function configureGroupNameInput(
   }
 }
 
+function areLinkFieldsNotValid() {
+  const isLinkNameNotValid =
+      !linkName.value ||
+      ((editableLinkInfo
+        ? !(linkName.value === editableLinkInfo!.name)
+        : true) &&
+        db.some((link) => link.name === linkName.value)),
+    isLinkURLNotValid = !linkURL.value || !/https?:\/\//g.test(linkURL.value),
+    isLinkGroupNotValid =
+      !linkGroupInput.value ||
+      ![...allMutableGroups, "Ungrouped"].includes(linkGroupInput.value);
+
+  return isLinkNameNotValid || isLinkURLNotValid || isLinkGroupNotValid;
+}
 fieldset.addEventListener("click", function (event: any): any {
   if (event.target.tagName === "BUTTON") {
     const action = event.target.innerText;
@@ -343,30 +353,25 @@ searchButton.addEventListener("click", function () {
     alert("There is no link you tried to find");
   }
 });
-main.addEventListener("contextmenu", function (event) {
-  //!
-  event.preventDefault();
-  const TARGET = event.target as HTMLElement;
-  switch (TARGET.tagName) {
-    case "DIV":
-      (TARGET.firstChild as HTMLInputElement).checked = true;
-      var anchor = TARGET.children[1] as HTMLAnchorElement;
-      break;
-    case "A":
-      (TARGET.previousElementSibling as HTMLInputElement).checked = true;
-      var anchor = TARGET as HTMLAnchorElement;
-      break;
-    default:
-      (TARGET as HTMLInputElement).checked = true;
-      var anchor = TARGET.nextElementSibling as HTMLAnchorElement;
-      break;
-  }
+main.addEventListener("click", function (event) {
+  if ((event.target as HTMLElement).tagName !== "INPUT") return;
+  checkedLinkRadio = event.target as HTMLInputElement;
+  editableLinkInfo = {
+    ...db.find(
+      (link) =>
+        link.name ===
+        (
+          (event.target as HTMLInputElement)
+            .nextElementSibling as HTMLAnchorElement
+        ).innerText
+    ),
+  } as Link;
   const configuration = document.querySelector(
     ".configure-link"
   ) as HTMLDivElement;
-  (configuration.children[0] as HTMLInputElement).value = anchor.innerText;
-  (configuration.children[1] as HTMLInputElement).value = anchor.href;
-  linkGroupInput.value = anchor.dataset.group as string;
+  (configuration.children[0] as HTMLInputElement).value = editableLinkInfo.name;
+  (configuration.children[1] as HTMLInputElement).value = editableLinkInfo.url;
+  linkGroupInput.value = editableLinkInfo.group;
 });
 
 document
@@ -375,110 +380,46 @@ document
     linkName.value = "";
     linkURL.value = "";
     linkGroupInput.value = "Ungrouped";
+    checkedLinkRadio = document.getElementById(
+      "createLinkState"
+    ) as HTMLInputElement;
   });
 
 linkGroupInput.addEventListener("blur", function () {
-  const radio = document.querySelector(
-    'input[name="link-settings"]:checked'
-  ) as HTMLInputElement;
-  if (!radio || radio.parentElement!.tagName === "BODY") return;
-  const activeAnchor = radio.nextElementSibling as HTMLAnchorElement;
+  if (!editableLinkInfo) return;
   if (![...allMutableGroups, "Ungrouped"].includes(linkGroupInput.value)) {
-    linkGroupInput.value = activeAnchor.dataset.group!;
+    linkGroupInput.value = editableLinkInfo.group;
     alert("This group doesn't exist");
     return;
   }
-
-  (db.find((link) => link.name === activeAnchor.innerText) as Link).group =
-    linkGroupInput.value;
-  activeAnchor.dataset.group = linkGroupInput.value;
-  localStorage.setItem("db", JSON.stringify(db));
-  showLinksToUser(
-    (
-      (fieldset.querySelector("input:checked") as HTMLInputElement)
-        .nextElementSibling as HTMLSpanElement
-    ).innerText,
-    "group"
-  );
 });
 linkURL.addEventListener("blur", function () {
-  const radio = document.querySelector(
-    'input[name="link-settings"]:checked'
-  ) as HTMLInputElement;
-  if (!radio || radio.parentElement!.tagName === "BODY") return;
-  const activeAnchor = radio.nextElementSibling as HTMLAnchorElement;
-  if (!linkURL.value) {
-    linkURL.value = activeAnchor.href;
-    alert("URL should contain at least 1 character");
+  if (!editableLinkInfo) return;
+  if (!linkURL.value || !/https?:\/\//g.test(linkURL.value)) {
+    linkURL.value = editableLinkInfo!.url;
+    alert("URL should start from http");
     return;
   }
   linkURL.value = linkURL.value.trim();
-  try {
-    (db.find((link) => link.name === activeAnchor.innerText) as Link).url =
-      linkURL.value;
-  } catch {
-    return;
-  }
-  activeAnchor.href = linkURL.value;
   localStorage.setItem("db", JSON.stringify(db));
 });
 linkName.addEventListener("blur", function () {
-  const radio = document.querySelector(
-    'input[name="link-settings"]:checked'
-  ) as HTMLInputElement;
-  if (!radio || radio.parentElement!.tagName === "BODY") return;
-  const activeAnchor = radio.nextElementSibling as HTMLAnchorElement;
+  if (!editableLinkInfo) return;
   if (!linkName.value) {
     alert("Name should contain at least 1 character");
-    linkName.value = activeAnchor.innerText;
+    linkName.value = editableLinkInfo.name;
     return;
   } else if (db.some((link) => link.name === linkName.value)) {
     alert("Link name already exists");
-    linkName.value = activeAnchor.innerText;
+    linkName.value = editableLinkInfo.name;
     return;
   }
-  try {
-    (db.find((link) => link.url === activeAnchor.href) as Link).name =
-      linkName.value;
-  } catch {
-    return;
-  }
-  activeAnchor.innerText = linkName.value;
-  prepareSearchInput();
-  localStorage.setItem("db", JSON.stringify(db));
 });
 
 document
-  .getElementById("special-button-for-link")!
+  .getElementById("delete-link-button")!
   .addEventListener("click", function () {
-    const radio = document.querySelector(
-      'input[name="link-settings"]:checked'
-    ) as HTMLInputElement;
-    if (
-      ![...allMutableGroups, "Ungrouped"].includes(linkGroupInput.value) ||
-      !linkName.value ||
-      !linkURL.value
-    ) {
-      alert("Please recheck all fields");
-      return;
-    }
-    if (radio.parentElement!.tagName === "BODY") {
-      db.push({
-        name: linkName.value,
-        url: linkURL.value,
-        group: linkGroupInput.value,
-      });
-      localStorage.setItem("db", JSON.stringify(db));
-      prepareSearchInput();
-      showLinksToUser(
-        (
-          (fieldset.querySelector("input:checked") as HTMLInputElement)
-            .nextElementSibling as HTMLSpanElement
-        ).innerText,
-        "group"
-      );
-      radio.checked = false;
-    } else {
+    if (!areLinkFieldsNotValid()) {
       confirm("Are you sure about deleting this link?")
         ? (() => {
             db.splice(
@@ -490,30 +431,72 @@ document
               ),
               1
             );
+            checkedLinkRadio!.checked = false;
+            checkedLinkRadio = null;
+            editableLinkInfo = null;
             showLinksToUser(
               (
-                (fieldset.querySelector("input:checked") as HTMLInputElement)
+                fieldset.querySelector<HTMLInputElement>("input:checked")!
                   .nextElementSibling as HTMLSpanElement
               ).innerText,
               "group"
             );
             prepareSearchInput();
-            radio.checked = false;
             localStorage.setItem("db", JSON.stringify(db));
           })()
         : "";
     }
   });
+document.getElementById("edit-link-button")!.addEventListener("click", () => {
+  new Promise((resolve, reject) => {
+    if (areLinkFieldsNotValid()) {
+      reject("");
+    }
+    if (editableLinkInfo) {
+      const thisLinkInDb = db.find(
+        (link) => link.name === editableLinkInfo!.name
+      ) as Link;
+      thisLinkInDb.name = linkName.value;
+      thisLinkInDb.url = linkURL.value;
+      thisLinkInDb.group = linkGroupInput.value;
+      editableLinkInfo = null;
+    } else
+      db.push({
+        name: linkName.value,
+        url: linkURL.value,
+        group: linkGroupInput.value,
+      });
+
+    resolve("");
+  }).then(
+    () => {
+      localStorage.setItem("db", JSON.stringify(db));
+      prepareSearchInput();
+      checkedLinkRadio!.checked = false;
+      checkedLinkRadio = null;
+      showLinksToUser(
+        (
+          fieldset.querySelector<HTMLInputElement>("input:checked")!
+            .nextElementSibling as HTMLSpanElement
+        ).innerText,
+        "group"
+      );
+    },
+    () => {
+      alert("Invalid link name, URL or group");
+    }
+  );
+});
 
 document.querySelector("section")!.addEventListener("click", function (event) {
-  const TARGET = event.target as HTMLElement;
-  if (TARGET.tagName === "SECTION") {
-    (
-      document.querySelector(
-        'input[name="link-settings"]:checked'
-      ) as HTMLInputElement
-    ).checked = false;
+  if (this !== event.target) return;
+  if (editableLinkInfo) {
+    linkName.value = editableLinkInfo.name;
+    linkURL.value = editableLinkInfo.url;
+    linkGroupInput.value = editableLinkInfo.group;
+    editableLinkInfo = null;
   }
+  checkedLinkRadio!.checked = false;
 });
 
 prepareLinkGroupSelect();

@@ -35,6 +35,7 @@ const db = (function () {
         return groups;
     }
 })(), fieldset = document.querySelector("fieldset"), searchButton = document.getElementById("search-button"), main = document.querySelector("main"), linkGroupInput = document.getElementById("linkGroupInput"), linkGroupSelect = document.getElementById("linkGroupSelect"), linkURL = document.getElementById("linkURL"), linkName = document.getElementById("linkName");
+var editableLinkInfo = null, checkedLinkRadio = null;
 function prepareSearchInput() {
     const datalist = document.getElementById("find-reference_options");
     datalist.innerHTML = "";
@@ -74,17 +75,11 @@ function prepareLinkGroupSelect() {
     }, []));
 }
 function showLinksToUser(group, elementToShow) {
-    switch (elementToShow) {
-        case "group":
-            var filteredArray = getFilteredResults(group);
-            break;
-        default:
-            var filteredArray = elementToShow;
-            break;
-    }
+    editableLinkInfo = null;
+    var filteredArray = elementToShow === "group" ? getFilteredResults(group) : elementToShow;
     main.innerHTML = filteredArray.reduce(function () {
         return (arguments[0] +
-            `<div><input type="radio" name="link-settings"><a data-group="${arguments[1].group}" target="_blank" href="${arguments[1].url}">${arguments[1].name}</a></div>`);
+            `<div><input id="radio${arguments[2]}" type="radio" name="link-settings"><a data-group="${arguments[1].group}" target="_blank" href="${arguments[1].url}">${arguments[1].name}</a><label for="radio${arguments[2]}">⋮</label></div>`);
     }, "");
 }
 function getFilteredResults(group) {
@@ -104,7 +99,7 @@ function configureGroupNameInput(situation, span) {
                     (_a = groupInput.parentElement) === null || _a === void 0 ? void 0 : _a.remove();
                     return;
                 }
-                if (allMutableGroups.includes(groupInput.value)) {
+                if ([...allMutableGroups, "Ungrouped", "All"].includes(groupInput.value)) {
                     alert("This groups already exists");
                     (_b = groupInput.parentElement) === null || _b === void 0 ? void 0 : _b.remove();
                     return;
@@ -128,7 +123,7 @@ function configureGroupNameInput(situation, span) {
             groupInput.addEventListener("blur", function () {
                 var _a;
                 if (groupInput.value == "" ||
-                    allMutableGroups.includes(groupInput.value)) {
+                    [...allMutableGroups, "Ungrouped", "All"].includes(groupInput.value)) {
                     alert("Field is empty or name already exists. Unsuitable name");
                     span.removeAttribute("style");
                     groupInput.remove();
@@ -140,7 +135,9 @@ function configureGroupNameInput(situation, span) {
                 });
                 localStorage.setItem("allMutableGroups", JSON.stringify(allMutableGroups));
                 localStorage.setItem("db", JSON.stringify(db));
-                main.querySelectorAll(`a[data-group="${span.innerText}"]`).forEach((anchor) => {
+                main
+                    .querySelectorAll(`a[data-group="${span.innerText}"]`)
+                    .forEach((anchor) => {
                     anchor.dataset.group = groupInput.value;
                 });
                 span.innerText = groupInput.value;
@@ -152,6 +149,15 @@ function configureGroupNameInput(situation, span) {
             });
             return;
     }
+}
+function areLinkFieldsNotValid() {
+    const isLinkNameNotValid = !linkName.value ||
+        ((editableLinkInfo
+            ? !(linkName.value === editableLinkInfo.name)
+            : true) &&
+            db.some((link) => link.name === linkName.value)), isLinkURLNotValid = !linkURL.value || !/https?:\/\//g.test(linkURL.value), isLinkGroupNotValid = !linkGroupInput.value ||
+        ![...allMutableGroups, "Ungrouped"].includes(linkGroupInput.value);
+    return isLinkNameNotValid || isLinkURLNotValid || isLinkGroupNotValid;
 }
 fieldset.addEventListener("click", function (event) {
     if (event.target.tagName === "BUTTON") {
@@ -227,27 +233,17 @@ searchButton.addEventListener("click", function () {
         alert("There is no link you tried to find");
     }
 });
-main.addEventListener("contextmenu", function (event) {
-    event.preventDefault();
-    const TARGET = event.target;
-    switch (TARGET.tagName) {
-        case "DIV":
-            TARGET.firstChild.checked = true;
-            var anchor = TARGET.children[1];
-            break;
-        case "A":
-            TARGET.previousElementSibling.checked = true;
-            var anchor = TARGET;
-            break;
-        default:
-            TARGET.checked = true;
-            var anchor = TARGET.nextElementSibling;
-            break;
-    }
+main.addEventListener("click", function (event) {
+    if (event.target.tagName !== "INPUT")
+        return;
+    checkedLinkRadio = event.target;
+    editableLinkInfo = Object.assign({}, db.find((link) => link.name ===
+        event.target
+            .nextElementSibling.innerText));
     const configuration = document.querySelector(".configure-link");
-    configuration.children[0].value = anchor.innerText;
-    configuration.children[1].value = anchor.href;
-    linkGroupInput.value = anchor.dataset.group;
+    configuration.children[0].value = editableLinkInfo.name;
+    configuration.children[1].value = editableLinkInfo.url;
+    linkGroupInput.value = editableLinkInfo.group;
 });
 document
     .getElementById("addNewLinkButton")
@@ -255,113 +251,102 @@ document
     linkName.value = "";
     linkURL.value = "";
     linkGroupInput.value = "Ungrouped";
+    checkedLinkRadio = document.getElementById("createLinkState");
 });
 linkGroupInput.addEventListener("blur", function () {
-    const radio = document.querySelector('input[name="link-settings"]:checked');
-    if (!radio || radio.parentElement.tagName === "BODY")
+    if (!editableLinkInfo)
         return;
-    const activeAnchor = radio.nextElementSibling;
     if (![...allMutableGroups, "Ungrouped"].includes(linkGroupInput.value)) {
-        linkGroupInput.value = activeAnchor.dataset.group;
+        linkGroupInput.value = editableLinkInfo.group;
         alert("This group doesn't exist");
         return;
     }
-    db.find((link) => link.name === activeAnchor.innerText).group =
-        linkGroupInput.value;
-    activeAnchor.dataset.group = linkGroupInput.value;
-    localStorage.setItem("db", JSON.stringify(db));
-    showLinksToUser(fieldset.querySelector("input:checked")
-        .nextElementSibling.innerText, "group");
 });
 linkURL.addEventListener("blur", function () {
-    const radio = document.querySelector('input[name="link-settings"]:checked');
-    if (!radio || radio.parentElement.tagName === "BODY")
+    if (!editableLinkInfo)
         return;
-    const activeAnchor = radio.nextElementSibling;
-    if (!linkURL.value) {
-        linkURL.value = activeAnchor.href;
-        alert("URL should contain at least 1 character");
+    if (!linkURL.value || !/https?:\/\//g.test(linkURL.value)) {
+        linkURL.value = editableLinkInfo.url;
+        alert("URL should start from http");
         return;
     }
     linkURL.value = linkURL.value.trim();
-    try {
-        db.find((link) => link.name === activeAnchor.innerText).url =
-            linkURL.value;
-    }
-    catch (_a) {
-        return;
-    }
-    activeAnchor.href = linkURL.value;
     localStorage.setItem("db", JSON.stringify(db));
 });
 linkName.addEventListener("blur", function () {
-    const radio = document.querySelector('input[name="link-settings"]:checked');
-    if (!radio || radio.parentElement.tagName === "BODY")
+    if (!editableLinkInfo)
         return;
-    const activeAnchor = radio.nextElementSibling;
     if (!linkName.value) {
         alert("Name should contain at least 1 character");
-        linkName.value = activeAnchor.innerText;
+        linkName.value = editableLinkInfo.name;
         return;
     }
     else if (db.some((link) => link.name === linkName.value)) {
         alert("Link name already exists");
-        linkName.value = activeAnchor.innerText;
+        linkName.value = editableLinkInfo.name;
         return;
     }
-    try {
-        db.find((link) => link.url === activeAnchor.href).name =
-            linkName.value;
-    }
-    catch (_a) {
-        return;
-    }
-    activeAnchor.innerText = linkName.value;
-    prepareSearchInput();
-    localStorage.setItem("db", JSON.stringify(db));
 });
 document
-    .getElementById("special-button-for-link")
+    .getElementById("delete-link-button")
     .addEventListener("click", function () {
-    const radio = document.querySelector('input[name="link-settings"]:checked');
-    if (![...allMutableGroups, "Ungrouped"].includes(linkGroupInput.value) ||
-        !linkName.value ||
-        !linkURL.value) {
-        alert("Please recheck all fields");
-        return;
-    }
-    if (radio.parentElement.tagName === "BODY") {
-        db.push({
-            name: linkName.value,
-            url: linkURL.value,
-            group: linkGroupInput.value,
-        });
-        localStorage.setItem("db", JSON.stringify(db));
-        prepareSearchInput();
-        showLinksToUser(fieldset.querySelector("input:checked")
-            .nextElementSibling.innerText, "group");
-        radio.checked = false;
-    }
-    else {
+    if (!areLinkFieldsNotValid()) {
         confirm("Are you sure about deleting this link?")
             ? (() => {
                 db.splice(db.findIndex((link) => link.name === linkName.value &&
                     link.url === linkURL.value &&
                     link.group === linkGroupInput.value), 1);
+                checkedLinkRadio.checked = false;
+                checkedLinkRadio = null;
+                editableLinkInfo = null;
                 showLinksToUser(fieldset.querySelector("input:checked")
                     .nextElementSibling.innerText, "group");
                 prepareSearchInput();
-                radio.checked = false;
                 localStorage.setItem("db", JSON.stringify(db));
             })()
             : "";
     }
 });
+document.getElementById("edit-link-button").addEventListener("click", () => {
+    new Promise((resolve, reject) => {
+        if (areLinkFieldsNotValid()) {
+            reject("");
+        }
+        if (editableLinkInfo) {
+            const thisLinkInDb = db.find((link) => link.name === editableLinkInfo.name);
+            thisLinkInDb.name = linkName.value;
+            thisLinkInDb.url = linkURL.value;
+            thisLinkInDb.group = linkGroupInput.value;
+            editableLinkInfo = null;
+        }
+        else
+            db.push({
+                name: linkName.value,
+                url: linkURL.value,
+                group: linkGroupInput.value,
+            });
+        resolve("");
+    }).then(() => {
+        localStorage.setItem("db", JSON.stringify(db));
+        prepareSearchInput();
+        checkedLinkRadio.checked = false;
+        checkedLinkRadio = null;
+        showLinksToUser(fieldset.querySelector("input:checked")
+            .nextElementSibling.innerText, "group");
+    }, () => {
+        alert("Invalid link name, URL or group");
+    });
+});
 document.querySelector("section").addEventListener("click", function (event) {
-    const TARGET = event.target;
-    if (TARGET.tagName === "SECTION") {
-        document.querySelector('input[name="link-settings"]:checked').checked = false;
+    if (this !== event.target)
+        return;
+    if (editableLinkInfo) {
+        linkName.value = editableLinkInfo.name;
+        linkURL.value = editableLinkInfo.url;
+        linkGroupInput.value = editableLinkInfo.group;
+        editableLinkInfo = null;
     }
+    checkedLinkRadio.checked = false;
 });
 prepareLinkGroupSelect();
 showAllGroupsInSidebar();

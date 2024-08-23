@@ -78,15 +78,20 @@ input {
   &[type="checkbox"] {
     display: none;
   }
+  &[type="radio"] {
+    width: 13px;
+    height: 13px;
+  }
   border: none;
   -webkit-text-fill-color: black;
   background-color: transparent;
 }
 main {
+  padding-inline: 5%;
   gap: setControllableSize(30px);
   display: flex;
   justify-content: space-evenly;
-  min-height: 40vh;
+  height: 70vh;
   align-items: center;
   flex-wrap: wrap;
   &:has(input[name]:checked) ~ section {
@@ -105,6 +110,7 @@ section {
   position: absolute;
   justify-content: center;
   align-items: center;
+  padding: 5%;
 }
 .configure-link {
   display: grid;
@@ -125,7 +131,7 @@ section {
   position: fixed;
   top: setControllableSize(20px, var(--scale-03-below-650px));
   right: 10px;
-  z-index: 1;
+  z-index: 2;
   label {
     transition: scale 500ms;
     display: flex;
@@ -187,7 +193,7 @@ label:has(#toggle-group-aside:checked) {
   }
 }
 aside {
-  overflow-y: scroll;
+  overflow-y: auto;
   font-size: 1.6em;
   transition: 500ms translate;
   translate: 100% 0;
@@ -198,6 +204,7 @@ aside {
   background-color: rgba(0, 0, 0, 0.7);
   padding: 70px 30px;
   color: white;
+  z-index: 1;
 }
 #addNewLinkButton {
   transition: background-color 250ms, scale 100ms;
@@ -262,30 +269,54 @@ textarea {
   outline: none;
 }
 a {
+  font-size: 32px;
+
+  color: white;
+}
+main div {
+  position: relative;
   display: flex;
   padding: setControllableSize(20px);
   border-radius: setControllableSize(10px);
-  font-size: 30px;
-  color: white;
   background-color: $GREY;
+  label {
+    color: white;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    cursor: pointer;
+    font-size: 30px;
+    line-height: 25px;
+  }
 }
-#special-button-for-link {
+section button {
   cursor: pointer;
-  background-color: black;
   color: white;
   font-size: 13px;
   transition: 200ms font-size;
+  min-height: 40px;
+  &:nth-of-type(2) {
+    background-color: black;
+  }
+  &:nth-of-type(1) {
+    background-color: $GREY;
+    &::after {
+      content: "Edit";
+    }
+  }
   &:hover {
     font-size: 15px;
   }
-  &::after {
-    content: "Delete";
-  }
 }
-#createLinkState:checked + section #special-button-for-link {
-  background-color: $GREEN;
-  color: black;
-  &::after {
-    content: "Add";
+#createLinkState:checked + section {
+  button:nth-of-type(2) {
+    display: none;
+  }
+  button:nth-of-type(1) {
+    background-color: $GREEN;
+    color: black;
+    &::after {
+      content: "Add";
+    }
   }
 }
