@@ -15,6 +15,7 @@
     <script defer src="./scripts/main.js"></script>
   </head>
   <body>
+    <input type="checkbox" id="dark-theme" />
     <header>
       <h1>Easy WEB navigation</h1>
       <nav>
@@ -45,6 +46,7 @@
       </label>
     </div>
     <aside>
+      <label for="dark-theme">Change theme</label>
       <label id="addNewLinkButton" for="createLinkState"> Add new link </label>
       <fieldset>
         <legend>Group filter <button>+</button></legend>
@@ -71,7 +73,12 @@
       <div class="configure-link">
         <input id="linkName" type="text" placeholder="Name" />
         <textarea id="linkURL" placeholder="URL"></textarea>
-        <input type="search" list="linkGroupSelect" id="linkGroupInput" />
+        <input
+          autocomplete="off"
+          type="search"
+          list="linkGroupSelect"
+          id="linkGroupInput"
+        />
         <datalist id="linkGroupSelect">
           <option value="Ungrouped">Ungrouped</option>
         </datalist>

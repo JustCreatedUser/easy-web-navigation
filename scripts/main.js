@@ -1,4 +1,8 @@
 "use strict";
+(() => {
+    document.getElementById("dark-theme").checked =
+        JSON.parse(localStorage.getItem("dark-theme") || "false");
+})();
 const db = (function () {
     try {
         let neededDB = JSON.parse(localStorage.db);
@@ -281,7 +285,8 @@ linkName.addEventListener("blur", function () {
         linkName.value = editableLinkInfo.name;
         return;
     }
-    else if (db.some((link) => link.name === linkName.value)) {
+    else if (!(editableLinkInfo.name === linkName.value) &&
+        db.some((link) => link.name === linkName.value)) {
         alert("Link name already exists");
         linkName.value = editableLinkInfo.name;
         return;
@@ -336,6 +341,9 @@ document.getElementById("edit-link-button").addEventListener("click", () => {
     }, () => {
         alert("Invalid link name, URL or group");
     });
+});
+document.getElementById("dark-theme").addEventListener("click", function () {
+    localStorage.setItem("dark-theme", `${this.checked}`);
 });
 document.querySelector("section").addEventListener("click", function (event) {
     if (this !== event.target)

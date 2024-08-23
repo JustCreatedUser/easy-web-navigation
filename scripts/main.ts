@@ -1,3 +1,7 @@
+(() => {
+  (document.getElementById("dark-theme") as HTMLInputElement).checked =
+    JSON.parse(localStorage.getItem("dark-theme") || "false");
+})();
 const db: Database = (function () {
     try {
       let neededDB = JSON.parse(localStorage.db);
@@ -409,7 +413,10 @@ linkName.addEventListener("blur", function () {
     alert("Name should contain at least 1 character");
     linkName.value = editableLinkInfo.name;
     return;
-  } else if (db.some((link) => link.name === linkName.value)) {
+  } else if (
+    !(editableLinkInfo.name === linkName.value) &&
+    db.some((link) => link.name === linkName.value)
+  ) {
     alert("Link name already exists");
     linkName.value = editableLinkInfo.name;
     return;
@@ -487,7 +494,9 @@ document.getElementById("edit-link-button")!.addEventListener("click", () => {
     }
   );
 });
-
+document.getElementById("dark-theme")!.addEventListener("click", function () {
+  localStorage.setItem("dark-theme", `${(this as HTMLInputElement).checked}`);
+});
 document.querySelector("section")!.addEventListener("click", function (event) {
   if (this !== event.target) return;
   if (editableLinkInfo) {
